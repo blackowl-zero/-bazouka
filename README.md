@@ -22,7 +22,7 @@ Nothing fancy, just a script I built to learn how BLE stacks behave under stress
 - `hcitool` installed (usually part of `bluez`)
 - The following Python packages:
 
-## download !
+## download 
 ```
 git clone https://github.com/blackowl-zero/bazouka.git
 ```
