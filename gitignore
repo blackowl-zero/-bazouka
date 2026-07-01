@@ -1,0 +1,63 @@
+# Python cache / bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Build / packaging
+build/
+dist/
+*.egg-info/
+.eggs/
+*.egg
+
+# Test / coverage
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+
+# Type check / lint cache
+.mypy_cache/
+.pyright/
+.ruff_cache/
+
+# IDE / editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Logs / runtime output
+*.log
+logs/
+
+# Local config / secrets
+.env
+.env.*
+*.secret
+secrets/
+
+# Local Bluetooth binaries / adapters / experiments
+l2ping
+hcitool
+*.pcap
+*.pcapng
+captures/
+
+# Project-local temp files
+tmp/
+temp/
+.cache/

